@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("-n", action='store_true', help='Do normalization or not')
+#parser.add_argument("-n", action='store_true', help='Do normalization or not')
 args = parser.parse_args()
 
 train_d = pd.read_csv("./Data/train.csv")
@@ -31,7 +31,7 @@ for i in range(train_d.shape[0]):
         hotel_label.append(1)
     
     #date
-    import ipdb; ipdb.set_trace()
+    #import ipdb; ipdb.set_trace()
     arr_date = str(train_d['arrival_date_year'][i]) + str(train_d['arrival_date_month'][i])+ str(train_d['arrival_date_day_of_month'][i])
     arrival_date.append(strTodatetime(arr_date,"%Y%B%d"))
         
@@ -73,22 +73,7 @@ for i in range(train_d.shape[0]):
     if np.isnan(train_d['children'][i]):
         train_d['children'][i] = 0
 
-# Do normalization
-if args.n:
-    print('Do normalization')
-    from sklearn.preprocessing import StandardScaler
-    z_score_scaler = StandardScaler()
-    from sklearn.preprocessing import MaxAbsScaler
-    maxab_scaler = MaxAbsScaler()
-
-
-    #部份column不做normalize的原因：原本的column太過於sparse（大部分為0）
-    #只要部份column的mean不會到太大(超過10), 就保留它原本的數值
-    z_score_scaler.fit(train_d[['lead_time','arrival_date_week_number']])
-    maxab_scaler.fit(train_d[['days_in_waiting_list']])
-    train_d[['lead_time','arrival_date_week_number']] = z_score_scaler.transform(train_d[['lead_time','arrival_date_week_number']])
-    train_d[['days_in_waiting_list']] = maxab_scaler.transform(train_d[['days_in_waiting_list']])
-
+#會包含
 train_d.to_csv('./train_preprocess.csv',index=False)
 
 

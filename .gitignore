@@ -1,1 +1,5 @@
 ./Data/*
+train_preprocess.csv
+.ipynb_checkpoints/
+.vscode/
+__pycache__/
