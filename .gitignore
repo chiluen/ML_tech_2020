@@ -3,3 +3,4 @@ train_preprocess.csv
 .ipynb_checkpoints/
 .vscode/
 __pycache__/
+.mypy_cache/
