@@ -19,3 +19,10 @@ def binary_cls_error(real, predict):
     error /= predict.shape[0]
     return error
             
+def mae(real, predict):
+    error = 0
+    real = np.array(real)
+    for i in range(real.shape[0]):
+        error += abs(real[i] - predict[i])
+    error /= real.shape[0]
+    return error

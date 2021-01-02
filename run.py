@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from argparse import ArgumentParser
 
 from model.xgb import model_xgb_reg, model_xgb_cls
-from utils import rmse, binary_cls_error
+from utils import rmse, binary_cls_error, mae
 
 """
 To do:
@@ -25,10 +25,12 @@ args = parser.parse_args()
 
 #----Path----#
 PREPROCESSED_DATA = "./train_preprocess.csv"
+DATA_ROOT = "./Data"
 RESULT_ROOT = "./result"
 
 #----Data load----#
 train_d = pd.read_csv(PREPROCESSED_DATA)
+train_d_label = pd.read_csv(DATA_ROOT + "/train_label.csv")
 
 #幾個column要拿掉
 revenue = train_d.pop('revenue')
@@ -58,7 +60,13 @@ X_train, X_test, y_train, y_test = train_test_split(train_d, train_label_df, tes
 #----Training for total revenue(adr * number of people)----#
 
 print("Start to train for total revenue")
-model_reg = model_xgb_reg()
+
+model_reg = model_xgb_reg(learning_rate = 0.1,
+                          n_estimators = 100, #原本設1000
+                          max_depth = 5,
+                          min_child_weight = 1,
+                          gamma = 0
+                          )
 model_reg.train(X_train, y_train['revenue'])
 
 #Eval
@@ -80,9 +88,55 @@ model_cls.train(X_train, y_train['is_canceled'])
 #Eval
 preds = model_cls.predict(X_test)
 error = binary_cls_error(y_test['is_canceled'], preds)
-print("Rmse for E_val: {}".format(error))
+print("Cls_error for E_val: {}".format(error))
 
 #Ein
 preds = model_cls.predict(X_train)
 error = binary_cls_error(y_train['is_canceled'], preds)
-print("Rmse for E_in: {}".format(error))
+print("Cls_error for E_in: {}".format(error))
+
+
+#----Predict for final quantize revenue----#
+
+##這邊我沒有分valid, 因為如果要做quantize revenue預測, valid應該要用"時間"來切, 就簡單做training set的testing
+revenue_predict = model_reg.predict(train_d)
+canceled_predict = model_cls.predict(train_d)
+
+profit_list = []
+profit_per_day = 0
+now_date = train_label_df['arrival_date'][0]
+for i in range(train_d.shape[0]):
+    if now_date == train_label_df['arrival_date'][i]:
+        profit_per_day += revenue_predict[i] * abs(canceled_predict[i] - 1)
+    else:
+        now_date = train_label_df['arrival_date'][i]
+        profit_list.append(profit_per_day)
+        profit_per_day = 0
+profit_list.append(profit_per_day)
+
+quantized_profit_list = []
+for i in range(len(profit_list)):
+    if profit_list[i] < 10000:
+        quantized_profit_list.append(0)
+    elif 10000 <= profit_list[i] < 20000:
+        quantized_profit_list.append(1)
+    elif 20000 <= profit_list[i] < 30000:
+        quantized_profit_list.append(2)
+    elif 30000 <= profit_list[i] < 40000:
+        quantized_profit_list.append(3)
+    elif 40000 <= profit_list[i] < 50000:
+        quantized_profit_list.append(4)
+    elif 50000 <= profit_list[i] < 60000:
+        quantized_profit_list.append(5)
+    elif 60000 <= profit_list[i] < 70000:
+        quantized_profit_list.append(6)
+    elif 70000 <= profit_list[i] < 80000:
+        quantized_profit_list.append(7)
+    elif 80000 <= profit_list[i] < 90000:
+        quantized_profit_list.append(8)
+    else:
+        quantized_profit_list.append(9)
+
+error = mae(train_d_label['label'], quantized_profit_list)
+print("Mae error for final result: {}".format(error))
+
