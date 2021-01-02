@@ -4,3 +4,5 @@ train_preprocess.csv
 .vscode/
 __pycache__/
 .mypy_cache/
+submit.csv
+test_preprocess.csv

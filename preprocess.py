@@ -9,7 +9,6 @@ parser = ArgumentParser()
 args = parser.parse_args()
 
 train_d = pd.read_csv("./Data/train.csv")
-train_label = pd.read_csv("./Data/train_label.csv")
 
 def strTodatetime(datestr, format):
     return datetime.datetime.strptime(datestr, format)
