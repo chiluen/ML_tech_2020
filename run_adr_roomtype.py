@@ -65,7 +65,7 @@ scaler = StandardScaler()
 scaler.fit(train_d)
 """
 
-X_train, X_test, y_train, y_test = train_test_split(train_d, train_label_df, test_size=0.3)
+X_train, X_test, y_train, y_test = train_test_split(train_d, train_label_df, test_size=0.01)
 
 #----Training for total revenue(adr * number of people)----#
 print("Start to train for total adr")
