@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from argparse import ArgumentParser
 
 from model.xgb import model_xgb_reg, model_xgb_cls
+from model.SVR import model_SVR_reg
 from utils import rmse, binary_cls_error, mae
 
 """
