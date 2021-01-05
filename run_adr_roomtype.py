@@ -35,12 +35,12 @@ train_d_label = pd.read_csv(DATA_ROOT + "/train_label.csv")
 print(train_d.shape)
 
 #幾個column要拿掉
-revenue = train_d.pop('revenue')
+adr = train_d.pop('adr')
 canceled_list = train_d.pop('is_canceled')
 date_time = train_d.pop('arrival_date')
 print(train_d.shape)
 
-train_label_df = pd.concat([revenue, canceled_list, date_time], axis=1)  #把這三者組在一起
+train_label_df = pd.concat([adr, canceled_list, date_time], axis=1)  #把這三者組在一起
 
 print(train_label_df.shape)
 print(train_label_df[0:10])
@@ -64,20 +64,21 @@ from sklearn.preprocessing import StandardScaler
 scaler = StandardScaler()
 scaler.fit(train_d)
 """
+
 X_train, X_test, y_train, y_test = train_test_split(train_d, train_label_df, test_size=0.3)
 
 #----Training for total revenue(adr * number of people)----#
+print("Start to train for total adr")
 
-print("Start to train for total revenue")
-
-model_reg = model_xgb_reg(learning_rate = 0.05, #原本設0.1
+model_reg = model_xgb_reg(learning_rate = 0.065, #原本設0.1
                           n_estimators = 700, #原本設100
-                          max_depth = 5, #原本設5
+                          max_depth = 7, #原本設5
                           min_child_weight = 2, #原本設1
-                          gamma = 0.5 #原本設0
+                          gamma = 0 #原本設0
                           )
-model_reg.train(X_train, y_train['revenue'])
-#print(y_train['revenue'].shape)
+model_reg.fit(X_train, y_train['adr'])
+
+#print(y_train['adr'].shape)
 """
 SVR modek testing
 """
@@ -92,7 +93,7 @@ import numpy as np
 #X = rng.randn(n_samples, n_features)
 model_reg = SVR(C=1.0, epsilon=0.0, verbose=1)
 #model_reg = SVR(kernel='rbf', C=1e3, gamma=0.1, verbose=True, max_iter=10000)
-model_reg.fit(X_train[:], y_train['revenue'][:])
+model_reg.fit(X_train[:], y_train['adr'][:])
 #regr.fit(X, y)
 """
 """
@@ -102,16 +103,16 @@ Random Forest
 from sklearn.ensemble import RandomForestRegressor
 
 model_reg = RandomForestRegressor(max_depth=20, random_state=0, n_estimators=200)
-model_reg.fit(X_train, y_train['revenue'])
+model_reg.fit(X_train, y_train['adr'])
 """
 #Eval
 preds = model_reg.predict(X_test)
-error = rmse(y_test['revenue'], preds)
+error = rmse(y_test['adr'], preds)
 print("Rmse for E_val: {}".format(error))
 
 #Ein
 preds = model_reg.predict(X_train)
-error = rmse(y_train['revenue'], preds)
+error = rmse(y_train['adr'], preds)
 print("Rmse for E_in: {}".format(error))
 
 #----Training for is_canceled----#
@@ -131,12 +132,14 @@ error = binary_cls_error(y_train['is_canceled'], preds)
 print("Cls_error for E_in: {}".format(error))
 
 
-#----Predict for final quantize revenue----#
+#----Predict for final quantize adr----#
 
 ##這邊我沒有分valid, 因為如果要做quantize revenue預測, valid應該要用"時間"來切, 就簡單做training set的testing
-model_reg.train(train_d, train_label_df['revenue'])
-revenue_predict = model_reg.predict(train_d)
+model_reg.fit(train_d, train_label_df['adr'])
+adr_predict = model_reg.predict(train_d)
 canceled_predict = model_cls.predict(train_d)
+
+revenue_predict = adr_predict * (train_d['stays_in_week_nights'] + train_d['stays_in_weekend_nights'])
 
 profit_list = []
 profit_per_day = 0
@@ -185,10 +188,11 @@ if args.test:
     test_date_time = test_d.pop('arrival_date')
     test_d = test_d[train_d.keys()] #把column排序
 
-    revenue_predict = model_reg.predict(test_d)
+    adr_predict = model_reg.predict(test_d)
     canceled_predict = model_cls.predict(test_d)
 
-    
+    revenue_predict = adr_predict * (test_d['stays_in_week_nights'] + test_d['stays_in_weekend_nights'])
+
     profit_list = []
     profit_per_day = 0
     now_date = test_date_time[0]
