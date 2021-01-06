@@ -31,7 +31,6 @@ BLENDING_NUMBER = 5
 #----Data load----#
 train_d = pd.read_csv(PREPROCESSED_DATA)
 train_d_label = pd.read_csv(DATA_ROOT + "/train_label.csv")
-print(train_d.shape)
 
 #幾個column要拿掉
 adr = train_d.pop('adr')
@@ -45,7 +44,7 @@ X_train, X_test, y_train, y_test = train_test_split(train_d, train_label_df, tes
 
 #----Training for total revenue(adr * number of people)----#
 print("Start to train for total adr")
-n_estimators_list = [100, 300, 500, 700, 1000]
+n_estimators_list = [100, 300, 500, 700, 900]
 max_depth_list = [4,5,6,7,8]
 model_reg_list = []
 for i in range(BLENDING_NUMBER):
@@ -138,7 +137,13 @@ print("Mae error for final result: {}".format(error))
 
 
 if args.test:
-    quantized_profit_list_total = np.zeros(len(profit_list)) 
+
+    test_d = pd.read_csv(PREPROCESSED_TEST_DATA)
+    test_date_time = test_d.pop('arrival_date')
+    test_d = test_d[train_d.keys()] #把column排序 
+    output_ans = pd.read_csv(DATA_ROOT+'/test_nolabel.csv')
+    quantized_profit_list_total = np.zeros(output_ans.shape[0]) 
+
     for i in range(BLENDING_NUMBER):
         test_d = pd.read_csv(PREPROCESSED_TEST_DATA)
         test_date_time = test_d.pop('arrival_date')
@@ -161,6 +166,7 @@ if args.test:
                 profit_per_day = revenue_predict[i] * abs(canceled_predict[i] - 1)
         profit_list.append(profit_per_day)
 
+        quantized_profit_list = []
         for i in range(len(profit_list)):
             if profit_list[i] < 10000:
                 quantized_profit_list.append(0)
@@ -182,15 +188,13 @@ if args.test:
                 quantized_profit_list.append(8)
             else:
                 quantized_profit_list.append(9)
+
         quantized_profit_list_total += np.array(quantized_profit_list)
 
     
     #把vote後的答案取平均
-    for i in range(quantized_profit_list_total.shape[0]):
-        quantized_profit_list_total[i] /= BLENDING_NUMBER
+    quantized_profit_list_total = quantized_profit_list_total / BLENDING_NUMBER
 
-    quantized_profit_list_total = quantized_profit_list_total.tolist()
-    output_ans = pd.read_csv(DATA_ROOT+'/test_nolabel.csv')
     output_ans['label'] = quantized_profit_list_total
     output_ans.to_csv('./submit.csv',index=False)
     
